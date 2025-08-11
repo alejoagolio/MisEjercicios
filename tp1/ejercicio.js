@@ -2,8 +2,7 @@
 // es objeto del tipo ImageData ( más info acá https://mzl.la/3rETTC6  )
 // Factor indica la cantidad de intensidades permitidas (sin contar el 0)
 function index(x, y, width){
-    let red = y * (width * 4) + x * 4
-    return [red, red+1, red+2, red+3]
+    return y * (width * 4) + x * 4
 }
 
 function allowed_colors(factor) {
@@ -37,60 +36,66 @@ function quantize(pixel, factor) {
     return [red, green, blue, pixel[3]];
 }
 
+function add_error(image, x, y, er, eg, eb){
+    let p = index(x+1, y, image.width);
+    image.data[p] += er * 7 / 16;
+    image.data[p+1] += eg * 7 / 16;
+    image.data[p+2] += eb * 7 / 16;
+
+    // 3/16 abajo a la izquierda
+    p = index(x-1, y+1, image.width);
+    image.data[p]     += er * 3 / 16;
+    image.data[p+1] += eg * 3 / 16;
+    image.data[p+2] += eb * 3 / 16;
+
+    // 5/16 abajo
+    p = index(x, y + 1, image.width);
+    image.data[p] += er * 5 / 16;
+    image.data[p+1] += eg * 5 / 16;
+    image.data[p+2] += eb * 5 / 16;
+
+    // 1/16 abajo a la derecha
+    p = index(x+1, y+1, image.width);
+    image.data[p] += er * 1 / 16;
+    image.data[p+1] += eg * 1 / 16;
+    image.data[p+2] += eb * 1 / 16;    
+}
+
 
 function dither(image, factor, algorithm)
 {
-    const data_imagea = new Uint8ClampedArray(image.data);
-    for(let i = 0; i < image.width - 1; i+=4){
-        for(let j = 0; j < image.height - 1; j++){
+    for(let i = 0; i < image.height - 1; i++){
+        for(let j = 0; j < image.width - 1; j++){
 
-                
+            let p = index(j, i, image.width)
 
-                let oldpixel = index(i,j, image.width)
-                oldpixel = [image.data[oldpixel[0]], image.data[oldpixel[1]], image.data[oldpixel[2]], image.data[oldpixel[3]]]
-                let newpixel = quantize(oldpixel, factor)
-                let error_red = oldpixel[0] - newpixel[0]
-                let error_green = oldpixel[1] - newpixel[1]
-                let error_blue = oldpixel[2] - newpixel[2]
-                let error = (Math.abs(error_red) + Math.abs(error_green) + Math.abs(error_blue)) / 3
+            const oldr = image.data[p], oldg = image.data[p+1], oldb = image.data[p+2];
+            const [nr, ng, nb] = quantize([oldr, oldg, oldb], factor);
 
-                image.data[oldpixel[0]] = newpixel[0]
-                image.data[oldpixel[1]] = newpixel[1]
-                image.data[oldpixel[2]] = newpixel[2]
-                
-                let right_pixel = index(i + 4, j, image.width);
-                image.data[right_pixel[0]] += error_red * 7 / 16;
-                image.data[right_pixel[0] + 1] += error_green * 7 / 16;
-                image.data[right_pixel[0] + 2] += error_blue * 7 / 16;
+            const er = oldr - nr;
+            const eg = oldg - ng;
+            const eb = oldb - nb;
 
-                image.data[right_pixel[0] - 2 + image.width] += error_red * 3 / 16;
-                image.data[right_pixel[0] - 2 + image.width + 1] += error_green * 3 / 16;
-                image.data[right_pixel[0] - 2 + image.width + 2] += error_blue * 3 / 16;
+            image.data[p] = nr
+            image.data[p+1] = ng
+            image.data[p+2] = nb
 
-                image.data[right_pixel[0] - 1 + image.width] += error_red * 5 / 16;
-                image.data[right_pixel[0] - 1 + image.width + 1] += error_green * 5 / 16;
-                image.data[right_pixel[0] - 1 + image.width + 2] += error_blue * 5 / 16;
-
-                image.data[right_pixel[0] + image.width] += error_red * 1 / 16;
-                image.data[right_pixel[0] + image.width + 1] += error_green * 1 / 16;
-                image.data[right_pixel[0] + image.width + 2] += error_blue * 1 / 16;
-                
-
+            add_error(image, j, i, er, eg, eb);
         }
-
-        const result = new Uint8ClampedArray(image.data);
-
-        substraction(data_imagea, image.data, result);
-}
-}
-
-// Imágenes a restar (imageA y imageB) y el retorno en result
-function substraction(imageA,imageB,result) 
-{
-    const len = imageA.data.length;
-    for (let i = 0; i < len; i += 4) {
-        result[i]     = imageA[i]     - imageB[i];
-        result[i + 1] = imageA[i + 1] - imageB[i + 1];
-        result[i + 2] = imageA[i + 2] - imageB[i + 2];
+        
     }
+}
+        
+// Imágenes a restar (imageA y imageB) y el retorno en result
+function substraction(imageA, imageB, result) {
+  const A = imageA.data;
+  const B = imageB.data;
+  const R = result.data;
+  const len = R.length;
+
+  for (let i = 0; i < len; i += 4) {
+    R[i] = A[i] - B[i];
+    R[i+1] = A[i+1] - B[i+1];
+    R[i+2] = A[i+2] - B[i+2]; 
+  }
 }
