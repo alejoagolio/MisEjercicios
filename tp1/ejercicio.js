@@ -36,53 +36,140 @@ function quantize(pixel, factor) {
     return [red, green, blue, pixel[3]];
 }
 
-function add_error(image, x, y, er, eg, eb){
-    let p = index(x+1, y, image.width);
-    image.data[p] += er * 7 / 16;
-    image.data[p+1] += eg * 7 / 16;
-    image.data[p+2] += eb * 7 / 16;
+function add_error(image, x, y, er, eg, eb, algorithm){
 
-    // 3/16 abajo a la izquierda
-    p = index(x-1, y+1, image.width);
-    image.data[p]     += er * 3 / 16;
-    image.data[p+1] += eg * 3 / 16;
-    image.data[p+2] += eb * 3 / 16;
+    if(algorithm === "floyd-steinberg"){
+        let p = index(x+1, y, image.width);
+        image.data[p] += er * 7 / 16;
+        image.data[p+1] += eg * 7 / 16;
+        image.data[p+2] += eb * 7 / 16;
+        
+        // 3/16 abajo a la izquierda
+        p = index(x-1, y+1, image.width);
+        image.data[p]     += er * 3 / 16;
+        image.data[p+1] += eg * 3 / 16;
+        image.data[p+2] += eb * 3 / 16;
+        
+        // 5/16 abajo
+        p = index(x, y + 1, image.width);
+        image.data[p] += er * 5 / 16;
+        image.data[p+1] += eg * 5 / 16;
+        image.data[p+2] += eb * 5 / 16;
+        
+        // 1/16 abajo a la derecha
+        p = index(x+1, y+1, image.width);
+        image.data[p] += er * 1 / 16;
+        image.data[p+1] += eg * 1 / 16;
+        image.data[p+2] += eb * 1 / 16;
+    } else {
+        let p = index(x+1, y, image.width)
+        image.data[p] += er * 7 / 48;
+        image.data[p+1] += eg * 7 / 48;
+        image.data[p+2] += eb * 7 / 48;
 
-    // 5/16 abajo
-    p = index(x, y + 1, image.width);
-    image.data[p] += er * 5 / 16;
-    image.data[p+1] += eg * 5 / 16;
-    image.data[p+2] += eb * 5 / 16;
+        p = index(x+2, y, image.width)
+        image.data[p] += er * 5 / 48;
+        image.data[p+1] += eg * 5 / 48;
+        image.data[p+2] += eb * 5 / 48;
 
-    // 1/16 abajo a la derecha
-    p = index(x+1, y+1, image.width);
-    image.data[p] += er * 1 / 16;
-    image.data[p+1] += eg * 1 / 16;
-    image.data[p+2] += eb * 1 / 16;    
+        p = index(x-2, y+1, image.width)
+        image.data[p] += er * 3 / 48;
+        image.data[p+1] += eg * 3 / 48;
+        image.data[p+2] += eb * 3 / 48;
+
+        p = index(x-1, y+1, image.width)
+        image.data[p] += er * 5 / 48;
+        image.data[p+1] += eg * 5 / 48;
+        image.data[p+2] += eb * 5 / 48;
+
+        p = index(x, y+1, image.width)
+        image.data[p] += er * 7 / 48;
+        image.data[p+1] += eg * 7 / 48;
+        image.data[p+2] += eb * 7 / 48;
+
+        p = index(x+1, y+1, image.width)
+        image.data[p] += er * 5 / 48;
+        image.data[p+1] += eg * 5 / 48;
+        image.data[p+2] += eb * 5 / 48;
+
+        p = index(x+2, y+1, image.width)
+        image.data[p] += er * 3 / 48;
+        image.data[p+1] += eg * 3 / 48;
+        image.data[p+2] += eb * 3 / 48;
+
+        p = index(x-2, y+2, image.width)
+        image.data[p] += er * 1 / 48;
+        image.data[p+1] += eg * 1 / 48;
+        image.data[p+2] += eb * 1 / 48;
+
+        p = index(x-1, y+2, image.width)
+        image.data[p] += er * 3 / 48;
+        image.data[p+1] += eg * 3 / 48;
+        image.data[p+2] += eb * 3 / 48;
+
+        p = index(x, y+2, image.width)
+        image.data[p] += er * 5 / 48;
+        image.data[p+1] += eg * 5 / 48;
+        image.data[p+2] += eb * 5 / 48;
+
+        p = index(x+1, y+2, image.width)
+        image.data[p] += er * 3 / 48;
+        image.data[p+1] += eg * 3 / 48;
+        image.data[p+2] += eb * 3 / 48;
+
+        p = index(x+2, y+2, image.width)
+        image.data[p] += er * 1 / 48;
+        image.data[p+1] += eg * 1 / 48;
+        image.data[p+2] += eb * 1 / 48;
+    }
 }
 
 
 function dither(image, factor, algorithm)
-{
-    for(let i = 0; i < image.height - 1; i++){
-        for(let j = 0; j < image.width - 1; j++){
+{   
+    if(algorithm === "floyd-steinberg"){
 
-            let p = index(j, i, image.width)
-
-            const oldr = image.data[p], oldg = image.data[p+1], oldb = image.data[p+2];
-            const [nr, ng, nb] = quantize([oldr, oldg, oldb], factor);
-
-            const er = oldr - nr;
-            const eg = oldg - ng;
-            const eb = oldb - nb;
-
-            image.data[p] = nr
-            image.data[p+1] = ng
-            image.data[p+2] = nb
-
-            add_error(image, j, i, er, eg, eb);
+        for(let i = 0; i < image.height - 1; i++){
+            for(let j = 1; j < image.width - 1; j++){
+                
+                let p = index(j, i, image.width)
+                
+                const oldr = image.data[p], oldg = image.data[p+1], oldb = image.data[p+2];
+                const [nr, ng, nb] = quantize([oldr, oldg, oldb], factor);
+                
+                const er = oldr - nr;
+                const eg = oldg - ng;
+                const eb = oldb - nb;
+                
+                image.data[p] = nr
+                image.data[p+1] = ng
+                image.data[p+2] = nb
+                
+                add_error(image, j, i, er, eg, eb, algorithm);
+            }
+            
         }
-        
+    } else {
+        for(let i = 0; i < image.height - 2; i++){
+            for(let j = 2; j < image.width - 2; j++){
+                
+                let p = index(j, i, image.width)
+                
+                const oldr = image.data[p], oldg = image.data[p+1], oldb = image.data[p+2];
+                const [nr, ng, nb] = quantize([oldr, oldg, oldb], factor);
+                
+                const er = oldr - nr;
+                const eg = oldg - ng;
+                const eb = oldb - nb;
+                
+                image.data[p] = nr
+                image.data[p+1] = ng
+                image.data[p+2] = nb
+                
+                add_error(image, j, i, er, eg, eb, algorithm);
+            }
+            
+        }
     }
 }
         
