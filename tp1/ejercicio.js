@@ -146,9 +146,42 @@ function dither(image, factor, algorithm)
                 image.data[p+2] = nb
                 
                 add_error(image, j, i, er, eg, eb, algorithm);
+                
             }
-            
         }
+
+        for(let i = 0; i < image.height; i++){
+            let p = index(i, 0, image.width)
+
+            let oldr = image.data[p], oldg = image.data[p+1], oldb = image.data[p+2];
+            let [nr, ng, nb] = quantize([oldr, oldg, oldb], factor);
+
+            image.data[p] = nr
+            image.data[p+1] = ng
+            image.data[p+2] = nb
+
+            p = index(i, image.width-1, image.width)
+
+            oldr = image.data[p], oldg = image.data[p+1], oldb = image.data[p+2];
+            [nr, ng, nb] = quantize([oldr, oldg, oldb], factor);
+
+            image.data[p] = nr
+            image.data[p+1] = ng
+            image.data[p+2] = nb
+        }
+
+        for(let i = 1; i < image.width - 1; i++){
+
+            let p = index(image.height-1, i, image.width)
+
+            let oldr = image.data[p], oldg = image.data[p+1], oldb = image.data[p+2];
+            let [nr, ng, nb] = quantize([oldr, oldg, oldb], factor);
+
+            image.data[p] = nr
+            image.data[p+1] = ng
+            image.data[p+2] = nb
+        }
+    
     } else {
         for(let i = 0; i < image.height - 2; i++){
             for(let j = 2; j < image.width - 2; j++){
