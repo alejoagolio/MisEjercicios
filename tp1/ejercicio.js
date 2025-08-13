@@ -44,19 +44,16 @@ function add_error(image, x, y, er, eg, eb, algorithm){
         image.data[p+1] += eg * 7 / 16;
         image.data[p+2] += eb * 7 / 16;
         
-        // 3/16 abajo a la izquierda
         p = index(x-1, y+1, image.width);
         image.data[p]     += er * 3 / 16;
         image.data[p+1] += eg * 3 / 16;
         image.data[p+2] += eb * 3 / 16;
         
-        // 5/16 abajo
         p = index(x, y + 1, image.width);
         image.data[p] += er * 5 / 16;
         image.data[p+1] += eg * 5 / 16;
         image.data[p+2] += eb * 5 / 16;
         
-        // 1/16 abajo a la derecha
         p = index(x+1, y+1, image.width);
         image.data[p] += er * 1 / 16;
         image.data[p+1] += eg * 1 / 16;
