@@ -129,7 +129,7 @@ Los parámetros son:
 Ayuda: ver apunte del campus.
 */
 function perspective(fovYdeg, aspect, znear, zfar){
-
+    
 }
 
 
