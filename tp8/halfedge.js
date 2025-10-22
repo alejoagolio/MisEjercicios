@@ -36,13 +36,38 @@ class Vertex {
     //  - halfEdge: Una half-edge que sale de este vértice (objeto HalfEdge)
     constructor(x, y, z, id) {
         // COMPLETAR
+        this.id = id
+        this.position = {x: x, y: y, z: z}
+        this.halfEdge = null
     }
 
     /**
      * Devuelve un array con los vértices adyacentes
      */
     getAdjacentVertices() {
-        // COMPLETAR
+        let adjacent = []
+        // caso triangulo
+        if(this.halfEdge.face.isTriangle()){
+            for (let edge of this.getOutgoingHalfEdges()){
+                adjacent.push(edge.getDestinationVertex())
+            }
+        }
+        // caso un solo vertice
+        else if(this.halfEdge.face.getNumSides() === 1){
+            adjacent.push(this.halfEdge.getDestinationVertex())
+        }
+        // caso cuadrilatero o mas
+        else{
+            let startEdge = this.halfEdge
+            let edge = startEdge
+            do {
+                adjacent.push(edge.getDestinationVertex())
+                edge = edge.twin
+                if (edge !== null) {
+                    edge = edge.next
+                }
+            } while (edge !== startEdge && edge !== null)
+        }
         return adjacent;
     }
 
@@ -51,6 +76,16 @@ class Vertex {
      */
     getOutgoingHalfEdges() {
         // COMPLETAR
+        let edges = []
+        let startEdge = this.halfEdge
+        let edge = startEdge
+        do {
+            edges.push(edge)
+            edge = edge.twin
+            if (edge !== null) {
+                edge = edge.next
+            }
+        } while (edge !== startEdge && edge !== null)
         return edges;
     }
 
@@ -59,14 +94,21 @@ class Vertex {
      */
     getIncidentFaces() {
        // COMPLETAR
+        faces = []
+        for (let edge of this.getOutgoingHalfEdges()){
+            if (edge.face !== null){
+                faces.push(edge.face)
+            }
         return faces;
     }
+}
 
     /**
      * Devuelve la valencia del vértice (número de edges/caras conectadas)
      */
     getValence() {
         // COMPLETAR
+        return this.getOutgoingHalfEdges().length
     }
 
     /*
@@ -74,6 +116,12 @@ class Vertex {
     */
     isBoundary() {
        // COMPLETAR
+        for (let edge of this.getOutgoingHalfEdges()){
+            if(edge.isBoundary()){
+                return true
+            }
+        }
+        return false
     }
 
     toString() {
@@ -98,6 +146,12 @@ class HalfEdge {
     //  - twin: Half-edge opuesta (objeto HalfEdge)
     constructor(id) {
        // COMPLETAR
+         this.id = id
+         this.vertex = null
+         this.face = null
+         this.next = null
+         this.prev = null
+         this.twin = null
     }
 
     /**
@@ -105,21 +159,25 @@ class HalfEdge {
      */
     getSourceVertex() {
         // COMPLETAR
+        return this.vertex
     }
 
     // Devuelve el vértice de destino de esta half-edge.
     getDestinationVertex() {
         // COMPLETAR
+        return this.next.vertex
     }
 
     // Devuelve ambos vértices de esta half-edge como un array [origen, destino]
     getVertices() {
         // COMPLETAR
+        return [this.getSourceVertex(), this.getDestinationVertex()]
     }
 
     // Comprueba si esta half-edge es una frontera (no tiene twin)
     isBoundary() {
         // COMPLETAR
+        return this.twin === null
     }
 
     // Devuelve la longitud de esta half-edge. La longitud
@@ -127,6 +185,9 @@ class HalfEdge {
     // Recordar que dado x, y en R3 la distancia d(x,y)= sqrt((x1-y1)^2 + (x2-y2)^2 + (x3-y3)^2)
     getLength() {
         // COMPLETAR
+        let v1 = this.getSourceVertex().position
+        let v2 = this.getDestinationVertex().position
+        return Math.sqrt((v1.x - v2.x)**2 + (v1.y - v2.y)**2 + (v1.z - v2.z)**2)
     }
 
     toString() {
@@ -152,45 +213,77 @@ class Face {
     //  - halfEdge: Una half-edge que pertenece a esta cara (objeto HalfEdge)
     constructor(id) {
       // COMPLETAR
+      this.id = id
+      this.halfEdge = null
     }
 
     // Devuelve todos los vértices de esta cara en orden
     getVertices() {
         // COMPLETAR
-
+        vertices = []
+        let startEdge = this.halfEdge
+        let edge = startEdge
+        while (true) {
+            vertices.push(edge.getSourceVertex())
+            edge = edge.next
+            if (edge === startEdge) break
+        }
         return vertices;
     }
 
     // Devuelve todas las half-edges de esta cara en orden
     getHalfEdges() {
         // COMPLETAR
+        let edges = []
+        let startEdge = this.halfEdge
+        let edge = startEdge
+        while (true) {
+            edges.push(edge)
+            edge = edge.next
+            if (edge === startEdge) break
+        }
         return edges;
     }
 
     // Devuelve todas las caras adyacentes (comparten una arista) a esta cara
     getAdjacentFaces() {
         // COMPLETAR
+        adjacent = []
+        for (let edge of this.getHalfEdges()){
+            if (edge.twin !== null && edge.twin.face !== null){
+                adjacent.push(edge.twin.face)
+            }
         return adjacent;
     }
+}
 
     // Devuelve el número de vértices/edges en esta cara
     getNumSides() {
         // COMPLETAR
+        return this.getHalfEdges().length
     }
 
     // Comprueba si esta cara es un triángulo
     isTriangle() {
         // COMPLETAR
+        return this.getNumSides() === 3
     }
 
     // Comprueba si esta cara es un cuadrilátero
     isQuad() {
         // COMPLETAR
+        return this.getNumSides() === 4
     }
 
     // Comprueba si esta cara tiene una arista de frontera
     hasBoundaryEdge() {
         // COMPLETAR
+        for (let edge of this.getHalfEdges()){
+            if(edge.isBoundary()){
+                return true
+            }
+        }
+        return false
     }
 
     toString() {
@@ -216,6 +309,10 @@ class HalfEdgeMesh {
     // para rastrear los pares de edges (para encontrar twins).
     constructor() {
         // COMPLETAR
+        this.vertices = []
+        this.halfEdges = []
+        this.faces = []
+        this.edges = new Map()
     }
 
     // Construye la estructura half-edge a partir de datos OBJ
@@ -223,7 +320,46 @@ class HalfEdgeMesh {
     // faceIndices: Array de índices de vértices para cada cara
     buildFromOBJ(positions, faceIndices) {
         // COMPLETAR
+        // Vertices
+        for(let i = 0; i < positions.length; i++){
+            let pos = positions[i]
+            let vertex = new Vertex(pos[0], pos[1], pos[2], i)
+            this.vertices.push(vertex)
+        }
+        // Faces and HalfEdges
+        let halfEdgeId = 0
+        for(let i = 0; i < faceIndices.length; i++){
+            let indices = faceIndices[i]
+            let face = new Face(i)
+            this.faces.push(face)
+            let faceHalfEdges = []
+            for(let j = 0; j < indices.length; j++){
+                let he = new HalfEdge(halfEdgeId++)
+                he.vertex = this.vertices[indices[j]]
+                he.face = face
+                faceHalfEdges.push(he)
+                this.halfEdges.push(he)
+                // Map edge for twin linking
+                let v1 = indices[j]
+                let v2 = indices[(j + 1) % indices.length]
+                let edgeKey = this.getEdgeKey(v1, v2)
+                this.edges.set(edgeKey, he)
+            }
+            // Link halfEdges in face
+            for(let j = 0; j < faceHalfEdges.length; j++){
+                faceHalfEdges[j].next = faceHalfEdges[(j + 1) % faceHalfEdges.length]
+                faceHalfEdges[j].prev = faceHalfEdges[(j - 1 + faceHalfEdges.length) % faceHalfEdges.length]
+            }
+            face.halfEdge = faceHalfEdges[0]
+            // Link halfEdge to vertex
+            for(let he of faceHalfEdges){
+                if(he.vertex.halfEdge === null){
+                    he.vertex.halfEdge = he
+                }
+            }
+        }
     }
+
 
     // ------ Sugerienca: completar estas funciones auxiliares para usarse en buildFromOBJ ------
     // Crea una key única para un edge dado sus dos vértices
@@ -236,6 +372,16 @@ class HalfEdgeMesh {
     // Esta función se llama para construir las referencias twin después de crear todas las half-edges
     linkTwins() {
         // COMPLETAR
+        for (let edge of this.halfEdges){
+            let v1 = edge.getSourceVertex().id
+            let v2 = edge.getDestinationVertex().id
+            let twinKey = this.getEdgeKey(v2, v1)
+            if (this.edges.has(twinKey)){
+                let twinEdge = this.edges.get(twinKey)
+                edge.twin = twinEdge
+                twinEdge.twin = edge
+            }
+        }
     }
     // ---------------------------------------------------------------
 
@@ -255,6 +401,48 @@ class HalfEdgeMesh {
         const isValid = errors.length === 0;
 
         // COMPLETAR
+        // Validar vértices
+        for (let vertex of this.vertices){
+            if (vertex.halfEdge === null){
+                errors.push(`Vertex ${vertex.id} has no outgoing half-edge.`);
+            }
+        }
+        // Validar half-edges
+        for (let edge of this.halfEdges){
+            if (edge.vertex === null){
+                errors.push(`HalfEdge ${edge.id} has no source vertex.`);
+            }
+            if (edge.face === null){
+                errors.push(`HalfEdge ${edge.id} has no face.`);
+            }
+            if (edge.next === null){
+                errors.push(`HalfEdge ${edge.id} has no next half-edge.`);
+            }
+            if (edge.prev === null){
+                errors.push(`HalfEdge ${edge.id} has no previous half-edge.`);
+            }
+            if (edge.next && edge.next.prev !== edge){
+                errors.push(`HalfEdge ${edge.id} next.prev does not point back to this half-edge.`);
+            }
+            if (edge.prev && edge.prev.next !== edge){
+                errors.push(`HalfEdge ${edge.id} prev.next does not point back to this half-edge.`);
+            }
+            if (edge.twin && edge.twin.twin !== edge){
+                errors.push(`HalfEdge ${edge.id} twin.twin does not point back to this half-edge.`);
+            }
+            // Validar ciclo cerrado en la cara
+            let startEdge = edge
+            let currentEdge = edge.next
+            let count = 0
+            while (currentEdge !== startEdge && count < this.halfEdges.length){
+                if (currentEdge === null){
+                    errors.push(`HalfEdge ${edge.id} face does not form a closed loop.`);
+                    break
+                }
+                currentEdge = currentEdge.next
+                count++
+            }
+        }
         return {
             valid: isValid,
             errors,
@@ -266,6 +454,21 @@ class HalfEdgeMesh {
     // Para edges, contamos half-edges / 2 (las half-edges de frontera se cuentan una sola vez)
     getStats() {
         // COMPLETAR
+        let numEdges = 0
+        let edgeSet = new Set()
+        for (let edge of this.halfEdges){
+            let v1 = edge.getSourceVertex().id
+            let v2 = edge.getDestinationVertex().id
+            let edgeKey = this.getEdgeKey(Math.min(v1, v2), Math.max(v1, v2))
+            edgeSet.add(edgeKey)
+        }
+        numEdges = edgeSet.size
+        return {
+            numVertices: this.vertices.length,
+            numHalfEdges: this.halfEdges.length,
+            numFaces: this.faces.length,
+            numEdges: numEdges
+        };
     }
 
     // ========================================================================
@@ -277,43 +480,110 @@ class HalfEdgeMesh {
     // Chequea si dos vértices son adyacentes (comparten una arista)
     areVerticesAdjacent(vertexId1, vertexId2) {
        // COMPLETAR
+        let vertex1 = this.vertices[vertexId1]
+        for (let edge of vertex1.getOutgoingHalfEdges()){
+            if (edge.getDestinationVertex().id === vertexId2){
+                return true
+            }
+        }
+        return false
     }
 
     // Devuelve la half-edge entre dos vértices (si existe)
     getHalfEdgeBetween(vertexId1, vertexId2) {
         // COMPLETAR
+        let vertex1 = this.vertices[vertexId1]
+        for (let edge of vertex1.getOutgoingHalfEdges()){
+            if (edge.getDestinationVertex().id === vertexId2){
+                return edge
+            }
+        }
+        return null
     }
 
     // Chequea si dos caras son adyacentes (comparten una arista)
     areFacesAdjacent(faceId1, faceId2) {
        // COMPLETAR
+        let face1 = this.faces[faceId1]
+        for (let edge of face1.getHalfEdges()){
+            if (edge.twin !== null && edge.twin.face !== null && edge.twin.face.id === faceId2){
+                return true
+            }
+        }
+        return false
     }
 
     // Encuentra los vértices comunes entre dos caras
     getCommonVertices(faceId1, faceId2) {
         // COMPLETAR
+        let face1 = this.faces[faceId1]
+        let face2 = this.faces[faceId2]
+        let vertices1 = new Set(face1.getVertices().map(v => v.id))
+        let common = []
+        for (let v of face2.getVertices()){
+            if (vertices1.has(v.id)){
+                common.push(v)
+            }
+        return common;
     }
+}
 
     // Devuelve todos los vértices de frontera
     getBoundaryVertices() {
         // COMPLETAR
+        boundary = []
+        for (let vertex of this.vertices){
+            if (vertex.isBoundary()){
+                boundary.push(vertex)
+            }
+        }
+        return boundary;
     }
 
     // Devuelve todas las half-edges de frontera
     getBoundaryHalfEdges() {
         // COMPLETAR
+        boundary = []
+        for (let edge of this.halfEdges){
+            if (edge.isBoundary()){
+                boundary.push(edge)
+            }
+        return boundary;
     }
+}
 
     // Devuelve todas las caras de frontera
     getBoundaryFaces() {
         // COMPLETAR
+        boundary = []
+        for (let face of this.faces){
+            if (face.hasBoundaryEdge()){
+                boundary.push(face)
+            }
+        return boundary;
     }
+}
 
 
     // Encuentra los vecinos en k-ring de un vértice (vértices a distancia k)
     // k=1 da los vecinos directos, k=2 da los vecinos de los vecinos, etc.
     getKRingNeighbors(vertexId, k) {
         // COMPLETAR
+        let startVertex = this.vertices[vertexId]
+        let currentRing = new Set([startVertex])
+        let allNeighbors = new Set([startVertex])
+        for (let i = 0; i < k; i++){
+            let nextRing = new Set()
+            for (let vertex of currentRing){
+                for (let neighbor of vertex.getAdjacentVertices()){
+                    if (!allNeighbors.has(neighbor)){
+                        nextRing.add(neighbor)
+                        allNeighbors.add(neighbor)
+                    }
+                }
+            }
+            currentRing = nextRing
+        }
     }
 }
 
@@ -329,6 +599,26 @@ function parseOBJ(text) {
     const faces = [];
 
     // COMPLETAR
+    const lines = text.split('\n');
+    for (let line of lines){
+        line = line.trim()
+        if (line.startsWith('v ')){
+            let parts = line.split(/\s+/)
+            let x = parseFloat(parts[1])
+            let y = parseFloat(parts[2])
+            let z = parseFloat(parts[3])
+            positions.push([x, y, z])
+        }
+        else if (line.startsWith('f ')){
+            let parts = line.split(/\s+/)
+            let face = []
+            for (let i = 1; i < parts.length; i++){
+                let idx = parseInt(parts[i].split('/')[0]) - 1 // OBJ is 1-indexed
+                face.push(idx)
+            }
+            faces.push(face)
+        }
+    }
     return {
         positions,
         faces
