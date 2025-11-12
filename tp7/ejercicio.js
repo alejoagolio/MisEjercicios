@@ -7,15 +7,18 @@ Testear: centroid([ (1,0,0), (0,1,0), (0,0,1) ]) = (1/3,1/3,1/3).
 */
 class Point {
   constructor(x = 0.0, y = 0.0, z = 0.0) {
-   
+    this.x = x;
+    this.y = y;
+    this.z = z;
+
   }
 
   add(other) {
-     
+    return new Point(this.x + other.x, this.y + other.y, this.z + other.z);
   }
 
   multiply(factor) {
-
+    return new Point(this.x * factor, this.y * factor, this.z * factor);
   }
 
   divide(factor) {
@@ -23,7 +26,7 @@ class Point {
   }
 
   equals(other) {
-
+    return this.x === other.x && this.y === other.y && this.z === other.z;
   }
   // definimos un orden lexicográfico para los puntos
   lessThan(other) {
@@ -37,7 +40,15 @@ class Point {
 //[TODO] Calcula el centroide de un conjunto de puntos. O sea, el promedio de sus coordenadas.
 // Devuelve una instancia de Point.
 function centroid(points) {
-
+  let sumx = 0.0;
+  let sumy = 0.0;
+  let sumz = 0.0;
+  for(let i = 0; i < points.length; i++) {
+    sumx += points[i].x;
+    sumy += points[i].y;
+    sumz += points[i].z;
+  }
+  return new Point(sumx / points.length, sumy / points.length, sumz / points.length);
 }
 
 /* [TODO] Clase Edge
@@ -55,15 +66,36 @@ class Edge {
     }
     this.hole_edge = false; // si es borde, ie, una superficie con agujero
     // completar
-    
+    this.begin = aBegin;
+    this.end = aEnd;
+    this.mid_edge = new Point(
+      (aBegin.x + aEnd.x) / 2.0,
+      (aBegin.y + aEnd.y) / 2.0,
+      (aBegin.z + aEnd.z) / 2.0
+    );
+
   }
 
   contains(point) {
-    
+    let AB = new Point(this.end.x - this.begin.x, this.end.y - this.begin.y, this.end.z - this.begin.z);
+    let AP = new Point(point.x - this.begin.x, point.y - this.begin.y, point.z - this.begin.z);
+    let BP = new Point(point.x - this.end.x, point.y - this.end.y, point.z - this.end.z);
+    let cross = new Point(
+      AB.y * AP.z - AB.z * AP.y,
+      AB.z * AP.x - AB.x * AP.z,
+      AB.x * AP.y - AB.y * AP.x
+    );
+    let cross_magnitude = Math.sqrt(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z);
+    if (cross_magnitude > 1e-6) {
+      return false; // no es colineal
+    }
+    let dot1 = AB.x * AP.x + AB.y * AP.y + AB.z * AP.z;
+    let dot2 = (-AB.x) * BP.x + (-AB.y) * BP.y + (-AB.z) * BP.z;
+    return dot1 >= 0 && dot2 >= 0; // está entre begin y end
   }
 
   equals(other) {
-    
+    return (this.begin.equals(other.begin) && this.end.equals(other.end)) || (this.begin.equals(other.end) && this.end.equals(other.begin));
   }
   // definimos un orden lexicográfico para las aristas similar a puntos
   lessThan(other) {
@@ -82,11 +114,30 @@ Testear: crea una cara con 4 vértices y verifica que las 4 aristas se crean cor
 */
 class Face {
   constructor(aVertices) {
-    // completar 
+    // completar
+    this.vertices = aVertices;
+    this.edges = [];
+    for(let i = 0; i < aVertices.length - 1; i++) {
+      this.edges.push(new Edge(aVertices[i], aVertices[i + 1]));
+    }
+    this.edges.push(new Edge(aVertices[aVertices.length - 1], aVertices[0]));
+    this.face_point = centroid(aVertices);
+
+    this.mid_edge_avg = 0.0;
+    for(let i = 0; i < this.edges.length; i++) {
+      this.mid_edge_avg = this.mid_edge_avg + this.edges[i].mid_edge;
+    }
+    this.mid_edge_avg = this.mid_edge_avg.divide(this.edges.length);
   }
 
   contains(vertex) {
     // completar
+    for(let i = 0; i < this.vertices.length; i++) {
+      if(this.vertices[i].equals(vertex)){
+        return true;
+      }
+  }
+    return false;
   }
 }
 // [TODO]: Implementar la función que calcula los nuevos vértices según Catmull-Clark:
@@ -97,10 +148,17 @@ class Face {
 function next_vertices(edges, faces) {
   const next_vertices_map = new Map();
   const vertices = new Set();
+  let F = [];
+  let R = [];
+  for(let i = 0; i < faces.length; i++) {
+    F.push(faces[i].face_point);
+    for(let j = 0; j < faces[i].edges.length; j++) {
+      R.push(faces[i].edges[j].mid_edge_avg);
+    }
+  }
+  
 
-
-  // Completar
-
+  return next_vertices_map;
 }
 
 function findEdgePoint(edge, uniqueEdges) {
